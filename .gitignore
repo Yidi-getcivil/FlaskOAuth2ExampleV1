@@ -2,3 +2,4 @@ venv
 .env
 sessions.db
 .idea
+my_secrets.py

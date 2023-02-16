@@ -1,10 +1,11 @@
 from flask import Flask, redirect
 from Auth.auth_logic import login_is_required, user_is_logged_in, with_session, get_session_id
 from Auth.database_interactions import data_handling
-from my_secrets import FLASK_APP_SECRET_KEY
+from Auth.config import Config
 
 app = Flask("Random Flask App")
-app.secret_key = FLASK_APP_SECRET_KEY
+app.config.from_object(Config)
+app.secret_key = app.config["SECRET_KEY"]
 
 
 @app.route("/protected_area1")

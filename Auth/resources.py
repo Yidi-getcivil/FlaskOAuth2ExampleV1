@@ -18,6 +18,14 @@ def login():
                " <a href='/login_with_github'><button>Login with GitHub</button></a>"
 
 
+@app.route("/logout")
+def logout():
+    session_object = data_handling.Session(get_session_id())
+    session.clear()
+    session_object.logout()
+    return redirect("/callback")
+
+
 @app.route("/callback")
 def callback():
     session_object = data_handling.Session(get_session_id())
@@ -30,17 +38,8 @@ def callback():
     return redirect(session_object.most_recent_source_route)
 
 
-@app.route("/logout")
-def logout():
-    session_object = data_handling.Session(get_session_id())
-    session.clear()
-    session_object.logout()
-    return redirect("/callback")
-
-
 github_blueprint = make_github_blueprint(client_id=app.config["GITHUB_OAUTH_CLIENT_ID"],
                                          client_secret=app.config["GITHUB_OAUTH_CLIENT_SECRET"])
-
 app.register_blueprint(github_blueprint, url_prefix='/github_login', redirect_to="callback",
                        login_url="/login_with_github")
 
@@ -70,7 +69,6 @@ google_blueprint = make_google_blueprint(
     scope=["https://www.googleapis.com/auth/userinfo.email",
            "openid",
            "https://www.googleapis.com/auth/userinfo.profile"])
-
 app.register_blueprint(google_blueprint, url_prefix='/google_login', redirect_to="callback",
                        login_url="/login_with_google")
 

@@ -1,4 +1,5 @@
 from flask import session, redirect, url_for
+from flask_dance.contrib.azure import make_azure_blueprint, azure
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
 from Auth.auth_logic import user_is_logged_in, get_session_id
@@ -34,14 +35,17 @@ def callback():
         return redirect("/login_with_github")
     if session_object.provider == "google_incomplete":
         return redirect("/login_with_google")
+    if session_object.provider == "azure_incomplete":
+        return redirect("/login_with_azure")
 
     return redirect(session_object.most_recent_source_route)
 
 
 github_blueprint = make_github_blueprint(client_id=app.config["GITHUB_OAUTH_CLIENT_ID"],
-                                         client_secret=app.config["GITHUB_OAUTH_CLIENT_SECRET"])
-app.register_blueprint(github_blueprint, url_prefix='/github_login', redirect_to="callback",
-                       login_url="/login_with_github")
+                                         client_secret=app.config["GITHUB_OAUTH_CLIENT_SECRET"],
+                                         redirect_to="callback",
+                                         login_url="/login_with_github")
+app.register_blueprint(github_blueprint, url_prefix='/github_login')
 
 
 @app.route("/login_with_github")
@@ -68,9 +72,10 @@ google_blueprint = make_google_blueprint(
     client_secret=app.config["GOOGLE_OAUTH_CLIENT_SECRET"],
     scope=["https://www.googleapis.com/auth/userinfo.email",
            "openid",
-           "https://www.googleapis.com/auth/userinfo.profile"])
-app.register_blueprint(google_blueprint, url_prefix='/google_login', redirect_to="callback",
-                       login_url="/login_with_google")
+           "https://www.googleapis.com/auth/userinfo.profile"],
+    redirect_to="callback",
+    login_url="/login_with_google")
+app.register_blueprint(google_blueprint, url_prefix='/google_login')
 
 
 @app.route("/login_with_google")

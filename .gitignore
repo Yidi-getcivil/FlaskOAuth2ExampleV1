@@ -1,0 +1,4 @@
+venv
+.env
+sessions.db
+.idea

@@ -1,5 +1,4 @@
 from flask import session, redirect, url_for
-from flask_dance.contrib.azure import make_azure_blueprint, azure
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
 from Auth.auth_logic import user_is_logged_in, get_session_id

@@ -1,9 +1,6 @@
-import json
-import os
 from flask import session, redirect, url_for
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
-
 from Auth.auth_logic import user_is_logged_in, get_session_id
 from Auth.database_interactions import data_handling
 from app import app
@@ -16,15 +13,9 @@ def login():
     if user_is_logged_in():
         return redirect("/callback")
     else:
-        return "Welcome to this test app login page <a href='/login_with_google'><button>Login with Google</button></a>" \
+        return "Welcome to this test app login page " \
+               "<a href='/login_with_google'><button>Login with Google</button></a>" \
                " <a href='/login_with_github'><button>Login with GitHub</button></a>"
-
-
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
-
-with open('Auth/credentials/google_secrets.json', "r") as f:
-    google_secrets = json.load(f)
 
 
 @app.route("/callback")
@@ -47,8 +38,8 @@ def logout():
     return redirect("/callback")
 
 
-github_blueprint = make_github_blueprint(client_id='Iv1.f478aaf7768f3cb6',
-                                         client_secret='e2d3f974d4d048c936ddde11b4ef64c8245e6d7f')
+github_blueprint = make_github_blueprint(client_id=app.config["GITHUB_OAUTH_CLIENT_ID"],
+                                         client_secret=app.config["GITHUB_OAUTH_CLIENT_SECRET"])
 
 app.register_blueprint(github_blueprint, url_prefix='/github_login', redirect_to="callback",
                        login_url="/login_with_github")
@@ -74,8 +65,8 @@ def github_login():
 
 
 google_blueprint = make_google_blueprint(
-    client_id='804316319918-rm70scnbrahencq3nn4l4qrhmkj3ni03.apps.googleusercontent.com',
-    client_secret='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',
+    client_id=app.config["GOOGLE_OAUTH_CLIENT_ID"],
+    client_secret=app.config["GOOGLE_OAUTH_CLIENT_SECRET"],
     scope=["https://www.googleapis.com/auth/userinfo.email",
            "openid",
            "https://www.googleapis.com/auth/userinfo.profile"])

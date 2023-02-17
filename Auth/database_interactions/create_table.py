@@ -77,7 +77,22 @@ def create_sessions_table():
       avatarUrls BLOB,
       active BOOLEAN,
       timeZone TEXT,
-      accountType TEXT
+      accountType TEXT,
+      account_id TEXT,
+      familiar_name TEXT,
+      display_name TEXT,
+      abbreviated_name TEXT,
+      disabled BOOLEAN,
+      country TEXT,
+      referral_link TEXT,
+      team BLOB,
+      account_type BLOB,
+      root_info BLOB,
+      profile_photo_url TEXT,
+      membership_type BLOB,
+      team_member_id TEXT,
+      is_paired BOOLEAN,
+      account_migration_state BLOB
     );
     ''')
     conn.commit()

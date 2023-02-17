@@ -1,6 +1,7 @@
 from flask import session, redirect, url_for
 from flask_dance.contrib.atlassian import make_atlassian_blueprint, atlassian
 from flask_dance.contrib.azure import make_azure_blueprint, azure
+from flask_dance.contrib.dropbox import make_dropbox_blueprint, dropbox
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
 from Auth.auth_logic import user_is_logged_in, get_session_id
@@ -19,7 +20,8 @@ def login():
                "<a href='/login_with_google'><button>Login with Google</button></a>" \
                " <a href='/login_with_github'><button>Login with GitHub</button></a> " \
                "<a href='/login_with_azure'><button>Login with Azure</button></a> " \
-               "<a href='/login_with_atlassian'><button>Login with Atlassian</button></a>"
+               "<a href='/login_with_atlassian'><button>Login with Atlassian</button></a> " \
+               "<a href='/login_with_dropbox'><button>Login with Dropbox</button></a>"
 
 
 @app.route("/logout")
@@ -149,3 +151,28 @@ def atlassian_login():
 
     return redirect("/callback")
 
+
+dropbox_blueprint = make_dropbox_blueprint(
+    app_key=app.config["DROPBOX_OAUTH_APP_KEY"],
+    app_secret=app.config["DROPBOX_OAUTH_APP_SECRET"],
+    redirect_url="callback",
+    scope=["account_info.read"],
+)
+app.register_blueprint(dropbox_blueprint, url_prefix='/dropbox_login')
+
+
+@app.route("/login_with_dropbox")
+def dropbox_login():
+    session_object = data_handling.Session(get_session_id())
+    if not dropbox.authorized:
+        session_object.set_in_login()
+        session_object.provider = "dropbox_incomplete"
+        session_object.save()
+        return redirect(url_for("dropbox.login"))
+
+    account_info = dropbox.get("/account/info")
+    account_info_json = account_info.json()
+    provider_authorized = dropbox.authorized
+    session_object.add_id_info("dropbox", account_info_json, provider_authorized)
+
+    return redirect("/callback")

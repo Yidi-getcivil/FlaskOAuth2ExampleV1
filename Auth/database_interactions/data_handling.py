@@ -29,10 +29,18 @@ class Session:
                 self.following, self.created_at, self.updated_at, self.context, self.businessPhones, self.displayName,
                 self.givenName, self.jobTitle, self.mail, self.mobilePhone, self.officeLocation, self.preferredLanguage,
                 self.surname, self.userPrincipalName, self.self, self.accountId, self.emailAddress, self.avatarUrls,
-                self.active, self.timeZone, self.accountType
+                self.active, self.timeZone, self.accountType, self.account_id, self.familiar_name, self.display_name,
+                self.abbreviated_name, self.disabled, self.country, self.referral_link, self.team, self.account_type,
+                self.root_info, self.profile_photo_url, self.membership_type, self.team_member_id, self.is_paired,
+                self.account_migration_state
              ) = row
             self.businessPhones = pickle.loads(self.businessPhones)
             self.avatarUrls = pickle.loads(self.avatarUrls)
+            self.team = pickle.loads(self.team)
+            self.account_type = pickle.loads(self.account_type)
+            self.root_info = pickle.loads(self.root_info)
+            self.membership_type = pickle.loads(self.membership_type)
+            self.account_migration_state = pickle.loads(self.account_migration_state)
         else:
             self.state = None
             self.most_recent_source_route = "/"
@@ -102,6 +110,21 @@ class Session:
             self.active = False
             self.timeZone = None
             self.accountType = None
+            self.account_id = None
+            self.familiar_name = None
+            self.display_name = None
+            self.abbreviated_name = None
+            self.disabled = False
+            self.country = None
+            self.referral_link = None
+            self.team = {}
+            self.account_type = {}
+            self.root_info = {}
+            self.profile_photo_url = None
+            self.membership_type = {}
+            self.team_member_id = None
+            self.is_paired = None
+            self.account_migration_state = {}
         self.save()
 
     def save(self):
@@ -114,9 +137,11 @@ class Session:
         blog, location, hireable, bio, twitter_username, public_repos, public_gists, followers, following, created_at, 
         updated_at, context, businessPhones, displayName, givenName, jobTitle, mail, mobilePhone, officeLocation, 
         preferredLanguage, surname, userPrincipalName, self, accountId, emailAddress, avatarUrls, active, timeZone, 
-        accountType)
+        accountType, account_id, familiar_name, display_name, abbreviated_name, disabled, country, referral_link, team, 
+        account_type, root_info, profile_photo_url, membership_type, team_member_id, is_paired, account_migration_state)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);'''
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);'''
         values = (self.session_id, self.state, self.most_recent_source_route, self.datetime_created, self.in_login,
                   self.provider, self.provider_authorized, self.iss, self.azp, self.aud, self.sub, self.email,
                   self.email_verified, self.at_hash, self.name, self.picture, self.given_name, self.family_name,
@@ -128,7 +153,11 @@ class Session:
                   self.following, self.created_at, self.updated_at, self.context, pickle.dumps(self.businessPhones),
                   self.displayName, self.givenName, self.jobTitle, self.mail, self.mobilePhone, self.officeLocation,
                   self.preferredLanguage, self.surname, self.userPrincipalName, self.self, self.accountId,
-                  self.emailAddress, pickle.dumps(self.avatarUrls), self.active, self.timeZone, self.accountType)
+                  self.emailAddress, pickle.dumps(self.avatarUrls), self.active, self.timeZone, self.accountType,
+                  self.account_id, self.familiar_name, self.display_name, self.abbreviated_name, self.disabled,
+                  self.country, self.referral_link, pickle.dumps(self.team), pickle.dumps(self.account_type),
+                  pickle.dumps(self.root_info), self.profile_photo_url, pickle.dumps(self.membership_type),
+                  self.team_member_id, self.is_paired, pickle.dumps(self.account_migration_state))
         conn = sqlite3.connect('sessions.db')
         cursor = conn.cursor()
         # Delete any sessions that are older than a week
@@ -167,11 +196,23 @@ class Session:
         self.aud = id_info.get("aud", None)
         self.sub = id_info.get("sub", None)
         self.email = id_info.get("email", None)
-        self.email_verified = id_info.get("email_verified", False)
         self.at_hash = id_info.get("at_hash", None)
-        self.name = id_info.get("name", None)
+        name = id_info.get("name", None)
+        if type(name) is dict:
+            self.name = None
+            self.given_name = name.get("email_verified", False)
+            self.surname = name.get("surname", False)
+            self.familiar_name = name.get("familiar_name", False)
+            self.display_name = name.get("display_name", False)
+            self.abbreviated_name = name.get("abbreviated_name", False)
+        else:
+            self.name = name
+            self.given_name = id_info.get("email_verified", False)
+            self.surname = id_info.get("surname", False)
+            self.familiar_name = id_info.get("familiar_name", False)
+            self.display_name = id_info.get("display_name", False)
+            self.abbreviated_name = id_info.get("abbreviated_name", False)
         self.picture = id_info.get("picture", None)
-        self.given_name = id_info.get("given_name", None)
         self.family_name = id_info.get("family_name", None)
         self.locale = id_info.get("locale", None)
         self.iat = id_info.get("iat", None)
@@ -224,6 +265,17 @@ class Session:
         self.active = id_info.get("active", False)
         self.timeZone = id_info.get("timeZone", None)
         self.accountType = id_info.get("accountType", None)
+        self.disabled = id_info.get("disabled", False)
+        self.country = id_info.get("country", None)
+        self.referral_link = id_info.get("referral_link", None)
+        self.team = id_info.get("team", {})
+        self.account_type = id_info.get("account_type", {})
+        self.root_info = id_info.get("root_info", {})
+        self.profile_photo_url = id_info.get("profile_photo_url", None)
+        self.membership_type = id_info.get("membership_type", {})
+        self.team_member_id = id_info.get("team_member_id", None)
+        self.is_paired = id_info.get("is_paired", None)
+        self.account_migration_state = id_info.get("account_migration_state", {})
         self.save()
 
     def logout(self):
@@ -291,6 +343,21 @@ class Session:
         self.active = False
         self.timeZone = None
         self.accountType = None
+        self.account_id = None
+        self.familiar_name = None
+        self.display_name = None
+        self.abbreviated_name = None
+        self.disabled = False
+        self.country = None
+        self.referral_link = None
+        self.team = {}
+        self.account_type = {}
+        self.root_info = {}
+        self.profile_photo_url = None
+        self.membership_type = {}
+        self.team_member_id = None
+        self.is_paired = None
+        self.account_migration_state = {}
         self.save()
 
     def set_in_login(self):

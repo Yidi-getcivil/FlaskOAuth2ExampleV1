@@ -34,16 +34,11 @@ def logout():
 def callback():
     session_object = data_handling.Session(get_session_id())
     session_object.set_out_login()
-    if session_object.provider == "github_incomplete":
-        return redirect("/login_with_github")
-    if session_object.provider == "google_incomplete":
-        return redirect("/login_with_google")
-    if session_object.provider == "azure_incomplete":
-        return redirect("/login_with_azure")
-    if session_object.provider == "atlassian_incomplete":
-        return redirect("/login_with_atlassian")
-
-    return redirect(session_object.most_recent_source_route)
+    if session_object.provider.endswith("_incomplete"):
+        provider_name = session_object.provider[:-10]  # remove "_incomplete" suffix from provider name
+        return redirect(f"/login_with_{provider_name}")
+    else:
+        return redirect(session_object.most_recent_source_route)
 
 
 github_blueprint = make_github_blueprint(client_id=app.config["GITHUB_OAUTH_CLIENT_ID"],

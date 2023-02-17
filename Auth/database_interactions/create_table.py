@@ -59,7 +59,18 @@ def create_sessions_table():
       followers INTEGER,
       following INTEGER,
       created_at TEXT,
-      updated_at TEXT
+      updated_at TEXT,
+      context TEXT,
+      businessPhones BLOB,
+      displayName TEXT,
+      givenName TEXT,
+      jobTitle TEXT,
+      mail TEXT,
+      mobilePhone TEXT,
+      officeLocation TEXT,
+      preferredLanguage TEXT,
+      surname TEXT,
+      userPrincipalName TEXT
     );
     ''')
     conn.commit()

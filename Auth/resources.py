@@ -1,4 +1,5 @@
 from flask import session, redirect, url_for
+from flask_dance.contrib.azure import make_azure_blueprint, azure
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
 from Auth.auth_logic import user_is_logged_in, get_session_id
@@ -15,7 +16,8 @@ def login():
     else:
         return "Welcome to this test app login page " \
                "<a href='/login_with_google'><button>Login with Google</button></a>" \
-               " <a href='/login_with_github'><button>Login with GitHub</button></a>"
+               " <a href='/login_with_github'><button>Login with GitHub</button></a> " \
+               "<a href='/login_with_azure'><button>Login with Azure</button></a>"
 
 
 @app.route("/logout")
@@ -90,5 +92,33 @@ def google_login():
     account_info_json = account_info.json()
     provider_authorized = google.authorized
     session_object.add_id_info("google", account_info_json, provider_authorized)
+
+    return redirect("/callback")
+
+
+azure_blueprint = make_azure_blueprint(
+    client_id=app.config["AZURE_OAUTH_CLIENT_ID"],
+    client_secret=app.config["AZURE_OAUTH_CLIENT_SECRET"],
+    tenant=app.config["AZURE_OAUTH_TENANT"],
+    scope=["User.Read"],
+    redirect_to="callback",
+    login_url="/login_with_azure"
+)
+app.register_blueprint(azure_blueprint, url_prefix='/azure_login')
+
+
+@app.route("/login_with_azure")
+def azure_login():
+    session_object = data_handling.Session(get_session_id())
+    if not azure.authorized:
+        session_object.set_in_login()
+        session_object.provider = "azure_incomplete"
+        session_object.save()
+        return redirect(url_for("azure.login"))
+
+    account_info = azure.get("/v1.0/me")
+    account_info_json = account_info.json()
+    provider_authorized = azure.authorized
+    session_object.add_id_info("azure", account_info_json, provider_authorized)
 
     return redirect("/callback")

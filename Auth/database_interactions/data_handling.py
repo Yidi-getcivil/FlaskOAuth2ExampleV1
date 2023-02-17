@@ -1,4 +1,5 @@
 # Create a connection to the database
+import pickle
 import sqlite3
 from datetime import datetime, timedelta
 from Auth.database_interactions import create_table
@@ -25,8 +26,11 @@ class Session:
                 self.subscriptions_url, self.organizations_url, self.repos_url, self.events_url,
                 self.received_events_url, self.type, self.site_admin, self.company, self.blog, self.location,
                 self.hireable, self.bio, self.twitter_username, self.public_repos, self.public_gists, self.followers,
-                self.following, self.created_at, self.updated_at
+                self.following, self.created_at, self.updated_at, self.context, self.businessPhones, self.displayName,
+                self.givenName, self.jobTitle, self.mail, self.mobilePhone, self.officeLocation, self.preferredLanguage,
+                self.surname, self.userPrincipalName
              ) = row
+            self.businessPhones = pickle.loads(self.businessPhones)
         else:
             self.state = None
             self.most_recent_source_route = "/"
@@ -78,6 +82,17 @@ class Session:
             self.following = None
             self.created_at = None
             self.updated_at = None
+            self.context = None
+            self.businessPhones = []
+            self.displayName = None
+            self.givenName = None
+            self.jobTitle = None
+            self.mail = None
+            self.mobilePhone = None
+            self.officeLocation = None
+            self.preferredLanguage = None
+            self.surname = None
+            self.userPrincipalName = None
         self.save()
 
     def save(self):
@@ -88,9 +103,10 @@ class Session:
         id, node_id, avatar_url, gravatar_id, url, html_url, followers_url, following_url, gists_url, starred_url, 
         subscriptions_url, organizations_url, repos_url, events_url, received_events_url, type, site_admin, company, 
         blog, location, hireable, bio, twitter_username, public_repos, public_gists, followers, following, created_at, 
-        updated_at)
+        updated_at, context, businessPhones, displayName, givenName, jobTitle, mail, mobilePhone, officeLocation, 
+        preferredLanguage, surname, userPrincipalName)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);'''
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);'''
         values = (self.session_id, self.state, self.most_recent_source_route, self.datetime_created, self.in_login,
                   self.provider, self.provider_authorized, self.iss, self.azp, self.aud, self.sub, self.email,
                   self.email_verified, self.at_hash, self.name, self.picture, self.given_name, self.family_name,
@@ -99,7 +115,9 @@ class Session:
                   self.subscriptions_url, self.organizations_url, self.repos_url, self.events_url,
                   self.received_events_url, self.type, self.site_admin, self.company, self.blog, self.location,
                   self.hireable, self.bio, self.twitter_username, self.public_repos, self.public_gists, self.followers,
-                  self.following, self.created_at, self.updated_at)
+                  self.following, self.created_at, self.updated_at, self.context, pickle.dumps(self.businessPhones),
+                  self.displayName, self.givenName, self.jobTitle, self.mail, self.mobilePhone, self.officeLocation,
+                  self.preferredLanguage, self.surname, self.userPrincipalName)
         conn = sqlite3.connect('sessions.db')
         cursor = conn.cursor()
         # Delete any sessions that are older than a week
@@ -177,6 +195,17 @@ class Session:
         self.following = id_info.get("following", None)
         self.created_at = id_info.get("created_at", None)
         self.updated_at = id_info.get("updated_at", None)
+        self.context = id_info.get("@odata.context", None)
+        self.businessPhones = id_info.get("businessPhones", [])
+        self.displayName = id_info.get("displayName", None)
+        self.givenName = id_info.get("givenName", None)
+        self.jobTitle = id_info.get("jobTitle", None)
+        self.mail = id_info.get("mail", None)
+        self.mobilePhone = id_info.get("mobilePhone", None)
+        self.officeLocation = id_info.get("officeLocation", None)
+        self.preferredLanguage = id_info.get("preferredLanguage", None)
+        self.surname = id_info.get("surname", None)
+        self.userPrincipalName = id_info.get("userPrincipalName", None)
         self.save()
 
     def logout(self):
@@ -226,6 +255,17 @@ class Session:
         self.following = None
         self.created_at = None
         self.updated_at = None
+        self.context = None
+        self.businessPhones = []
+        self.displayName = None
+        self.givenName = None
+        self.jobTitle = None
+        self.mail = None
+        self.mobilePhone = None
+        self.officeLocation = None
+        self.preferredLanguage = None
+        self.surname = None
+        self.userPrincipalName = None
         self.save()
 
     def set_in_login(self):

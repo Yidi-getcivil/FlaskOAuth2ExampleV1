@@ -70,7 +70,14 @@ def create_sessions_table():
       officeLocation TEXT,
       preferredLanguage TEXT,
       surname TEXT,
-      userPrincipalName TEXT
+      userPrincipalName TEXT,
+      self TEXT,
+      accountId TEXT,
+      emailAddress TEXT,
+      avatarUrls BLOB,
+      active BOOLEAN,
+      timeZone TEXT,
+      accountType TEXT
     );
     ''')
     conn.commit()

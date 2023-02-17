@@ -1,4 +1,5 @@
 from flask import session, redirect, url_for
+from flask_dance.contrib.atlassian import make_atlassian_blueprint, atlassian
 from flask_dance.contrib.azure import make_azure_blueprint, azure
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
@@ -17,7 +18,8 @@ def login():
         return "Welcome to this test app login page " \
                "<a href='/login_with_google'><button>Login with Google</button></a>" \
                " <a href='/login_with_github'><button>Login with GitHub</button></a> " \
-               "<a href='/login_with_azure'><button>Login with Azure</button></a>"
+               "<a href='/login_with_azure'><button>Login with Azure</button></a> " \
+               "<a href='/login_with_atlassian'><button>Login with Atlassian</button></a>"
 
 
 @app.route("/logout")
@@ -38,6 +40,8 @@ def callback():
         return redirect("/login_with_google")
     if session_object.provider == "azure_incomplete":
         return redirect("/login_with_azure")
+    if session_object.provider == "atlassian_incomplete":
+        return redirect("/login_with_atlassian")
 
     return redirect(session_object.most_recent_source_route)
 
@@ -122,3 +126,31 @@ def azure_login():
     session_object.add_id_info("azure", account_info_json, provider_authorized)
 
     return redirect("/callback")
+
+
+atlassian_blueprint = make_atlassian_blueprint(
+    client_id=app.config["ATLASSIAN_OAUTH_CLIENT_ID"],
+    client_secret=app.config["ATLASSIAN_OAUTH_CLIENT_SECRET"],
+    scope=["offline_access", "read:jira-user", "read:jira-work", "write:jira-work"],
+    redirect_to="callback",
+    login_url="/login_with_atlassian"
+)
+app.register_blueprint(atlassian_blueprint, url_prefix='/atlassian_login')
+
+
+@app.route("/login_with_atlassian")
+def atlassian_login():
+    session_object = data_handling.Session(get_session_id())
+    if not atlassian.authorized:
+        session_object.set_in_login()
+        session_object.provider = "atlassian_incomplete"
+        session_object.save()
+        return redirect(url_for("atlassian.login"))
+
+    account_info = atlassian.get("/rest/api/3/myself")
+    account_info_json = account_info.json()
+    provider_authorized = atlassian.authorized
+    session_object.add_id_info("atlassian", account_info_json, provider_authorized)
+
+    return redirect("/callback")
+

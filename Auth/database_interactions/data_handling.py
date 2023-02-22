@@ -1,6 +1,8 @@
 # Create a connection to the database
 import pickle
+import random
 import sqlite3
+import string
 from datetime import datetime, timedelta
 from Auth.database_interactions import create_table
 
@@ -18,12 +20,12 @@ class Session:
         conn.close()
         if row:
             (
-                self.session_id, self.state, self.most_recent_source_route, self.datetime_created, self.in_login,
-                self.provider, self.provider_authorized, self.iss, self.azp, self.aud, self.sub, self.email,
-                self.email_verified, self.at_hash, self.name, self.picture, self.given_name, self.family_name,
-                self.locale, self.iat, self.exp, self.login, self.id, self.node_id, self.avatar_url, self.gravatar_id,
-                self.url, self.html_url, self.followers_url, self.following_url, self.gists_url, self.starred_url,
-                self.subscriptions_url, self.organizations_url, self.repos_url, self.events_url,
+                self.session_id, self.request_secret, self.state, self.most_recent_source_route, self.datetime_created,
+                self.in_login, self.provider, self.provider_authorized, self.iss, self.azp, self.aud, self.sub,
+                self.email, self.email_verified, self.at_hash, self.name, self.picture, self.given_name,
+                self.family_name, self.locale, self.iat, self.exp, self.login, self.id, self.node_id, self.avatar_url,
+                self.gravatar_id, self.url, self.html_url, self.followers_url, self.following_url, self.gists_url,
+                self.starred_url, self.subscriptions_url, self.organizations_url, self.repos_url, self.events_url,
                 self.received_events_url, self.type, self.site_admin, self.company, self.blog, self.location,
                 self.hireable, self.bio, self.twitter_username, self.public_repos, self.public_gists, self.followers,
                 self.following, self.created_at, self.updated_at, self.context, self.businessPhones, self.displayName,
@@ -42,6 +44,7 @@ class Session:
             self.membership_type = pickle.loads(self.membership_type)
             self.account_migration_state = pickle.loads(self.account_migration_state)
         else:
+            self.request_secret = None
             self.state = None
             self.most_recent_source_route = "/"
             self.datetime_created = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -130,34 +133,36 @@ class Session:
     def save(self):
         # Save the current state of the session to the database
         query = f'''INSERT OR REPLACE INTO sessions 
-        (session_id, state, most_recent_source_route, datetime_created, in_login, provider, provider_authorized, iss, 
-        azp, aud, sub, email, email_verified, at_hash, name, picture, given_name, family_name, locale, iat, exp, login, 
-        id, node_id, avatar_url, gravatar_id, url, html_url, followers_url, following_url, gists_url, starred_url, 
-        subscriptions_url, organizations_url, repos_url, events_url, received_events_url, type, site_admin, company, 
-        blog, location, hireable, bio, twitter_username, public_repos, public_gists, followers, following, created_at, 
-        updated_at, context, businessPhones, displayName, givenName, jobTitle, mail, mobilePhone, officeLocation, 
-        preferredLanguage, surname, userPrincipalName, self, accountId, emailAddress, avatarUrls, active, timeZone, 
-        accountType, account_id, familiar_name, display_name, abbreviated_name, disabled, country, referral_link, team, 
-        account_type, root_info, profile_photo_url, membership_type, team_member_id, is_paired, account_migration_state)
+        (session_id, request_secret, state, most_recent_source_route, datetime_created, in_login, provider, 
+        provider_authorized, iss, azp, aud, sub, email, email_verified, at_hash, name, picture, given_name, family_name, 
+        locale, iat, exp, login, id, node_id, avatar_url, gravatar_id, url, html_url, followers_url, following_url, 
+        gists_url, starred_url, subscriptions_url, organizations_url, repos_url, events_url, received_events_url, type, 
+        site_admin, company, blog, location, hireable, bio, twitter_username, public_repos, public_gists, followers, 
+        following, created_at, updated_at, context, businessPhones, displayName, givenName, jobTitle, mail, mobilePhone, 
+        officeLocation, preferredLanguage, surname, userPrincipalName, self, accountId, emailAddress, avatarUrls, 
+        active, timeZone, accountType, account_id, familiar_name, display_name, abbreviated_name, disabled, country, 
+        referral_link, team, account_type, root_info, profile_photo_url, membership_type, team_member_id, is_paired, 
+        account_migration_state)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);'''
-        values = (self.session_id, self.state, self.most_recent_source_route, self.datetime_created, self.in_login,
-                  self.provider, self.provider_authorized, self.iss, self.azp, self.aud, self.sub, self.email,
-                  self.email_verified, self.at_hash, self.name, self.picture, self.given_name, self.family_name,
-                  self.locale, self.iat, self.exp, self.login, self.id, self.node_id, self.avatar_url, self.gravatar_id,
-                  self.url, self.html_url, self.followers_url, self.following_url, self.gists_url, self.starred_url,
-                  self.subscriptions_url, self.organizations_url, self.repos_url, self.events_url,
-                  self.received_events_url, self.type, self.site_admin, self.company, self.blog, self.location,
-                  self.hireable, self.bio, self.twitter_username, self.public_repos, self.public_gists, self.followers,
-                  self.following, self.created_at, self.updated_at, self.context, pickle.dumps(self.businessPhones),
-                  self.displayName, self.givenName, self.jobTitle, self.mail, self.mobilePhone, self.officeLocation,
-                  self.preferredLanguage, self.surname, self.userPrincipalName, self.self, self.accountId,
-                  self.emailAddress, pickle.dumps(self.avatarUrls), self.active, self.timeZone, self.accountType,
-                  self.account_id, self.familiar_name, self.display_name, self.abbreviated_name, self.disabled,
-                  self.country, self.referral_link, pickle.dumps(self.team), pickle.dumps(self.account_type),
-                  pickle.dumps(self.root_info), self.profile_photo_url, pickle.dumps(self.membership_type),
-                  self.team_member_id, self.is_paired, pickle.dumps(self.account_migration_state))
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);'''
+        values = (self.session_id, self.request_secret, self.state, self.most_recent_source_route,
+                  self.datetime_created, self.in_login, self.provider, self.provider_authorized, self.iss, self.azp,
+                  self.aud, self.sub, self.email, self.email_verified, self.at_hash, self.name, self.picture,
+                  self.given_name, self.family_name, self.locale, self.iat, self.exp, self.login, self.id, self.node_id,
+                  self.avatar_url, self.gravatar_id, self.url, self.html_url, self.followers_url, self.following_url,
+                  self.gists_url, self.starred_url, self.subscriptions_url, self.organizations_url, self.repos_url,
+                  self.events_url, self.received_events_url, self.type, self.site_admin, self.company, self.blog,
+                  self.location, self.hireable, self.bio, self.twitter_username, self.public_repos, self.public_gists,
+                  self.followers, self.following, self.created_at, self.updated_at, self.context,
+                  pickle.dumps(self.businessPhones), self.displayName, self.givenName, self.jobTitle, self.mail,
+                  self.mobilePhone, self.officeLocation, self.preferredLanguage, self.surname, self.userPrincipalName,
+                  self.self, self.accountId, self.emailAddress, pickle.dumps(self.avatarUrls), self.active,
+                  self.timeZone, self.accountType, self.account_id, self.familiar_name, self.display_name,
+                  self.abbreviated_name, self.disabled, self.country, self.referral_link, pickle.dumps(self.team),
+                  pickle.dumps(self.account_type), pickle.dumps(self.root_info), self.profile_photo_url,
+                  pickle.dumps(self.membership_type), self.team_member_id, self.is_paired,
+                  pickle.dumps(self.account_migration_state))
         conn = sqlite3.connect('sessions.db')
         cursor = conn.cursor()
         # Delete any sessions that are older than a week
@@ -367,3 +372,8 @@ class Session:
     def set_out_login(self):
         self.in_login = False
         self.save()
+
+    def create_new_request_secret(self, length=40):
+        self.request_secret = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+        self.save()
+        return self.request_secret

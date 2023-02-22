@@ -20,7 +20,7 @@
 
     <script>
       const BASE_URL = 'https://api.example.com';
-      const ACCESS_TOKEN = 'your_access_token_here';
+      const REQUEST_SECRET = 'your_request_secret_here';
       let salt;
 
       function handleSignUpResponse(response) {
@@ -75,7 +75,7 @@
         const url = BASE_URL + '/sign_up';
         const headers = {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'Bearer ' + ACCESS_TOKEN
+          'Authorization': 'Bearer ' + REQUEST_SECRET
         };
         const body = new URLSearchParams();
         body.append('email', email);

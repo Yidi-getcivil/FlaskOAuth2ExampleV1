@@ -10,6 +10,7 @@ def create_sessions_table():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS sessions (
       session_id TEXT PRIMARY KEY,
+      request_secret TEXT,
       state TEXT,
       most_recent_source_route TEXT,
       datetime_created TEXT DEFAULT CURRENT_TIMESTAMP,

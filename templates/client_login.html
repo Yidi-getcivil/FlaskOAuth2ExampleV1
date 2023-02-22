@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login Page</title>
+</head>
+<body>
+  <form id="loginForm">
+    <label for="username">Email/Username:</label>
+    <input type="text" id="username" name="username"><br><br>
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password"><br><br>
+    <button type="button" onclick="login()">Sign In</button>
+  </form>
+
+  <script>
+    // Set the base URL for API calls
+    const base_url = "https://example.com/api";
+
+    // Set the access token
+    const access_token = "your_access_token_here";
+
+    // Function to handle the login process
+    function login() {
+      // Get the username and password from the form
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      // Make a call to the /salt_request endpoint to get the salt
+      fetch(base_url + "/salt_request", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${access_token}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `email=${username}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        const salt = data.salt;
+
+        // Hash the password with the salt using sha256
+        const hashed_password = sha256(password + salt);
+
+        // Make a call to the /authenticate_user endpoint to authenticate the user
+        fetch(base_url + "/authenticate_user", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${access_token}`,
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: `email=${username}&password=${hashed_password}`
+        })
+        .then(response => {
+          if (response.ok) {
+            alert("You are logged in successfully!");
+          } else {
+            alert("Failed to log in. Please try again.");
+          }
+        })
+        .catch(error => {
+          alert("Failed to log in. Please try again.");
+        });
+      })
+      .catch(error => {
+        alert("Failed to log in. Please try again.");
+      });
+    }
+
+    // Function to hash a string using sha256
+    function sha256(str) {
+      const buffer = new TextEncoder("utf-8").encode(str);
+      return crypto.subtle.digest("SHA-256", buffer)
+        .then(hash => {
+          return hex(hash);
+        });
+    }
+
+    // Function to convert a buffer to a hex string
+    function hex(buffer) {
+      const hexCodes = [];
+      const view = new DataView(buffer);
+      for (let i = 0; i < view.byteLength; i += 4) {
+        const value = view.getUint32(i);
+        const stringValue = value.toString(16);
+        const padding = '00000000';
+        const paddedValue = (padding + stringValue).slice(-padding.length);
+        hexCodes.push(paddedValue);
+      }
+      return hexCodes.join("");
+    }
+  </script>
+</body>
+</html>

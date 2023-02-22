@@ -1,4 +1,7 @@
-from flask import session, redirect, url_for
+import hashlib
+import sqlite3
+
+from flask import session, redirect, url_for, request
 from flask_dance.contrib.atlassian import make_atlassian_blueprint, atlassian
 from flask_dance.contrib.azure import make_azure_blueprint, azure
 from flask_dance.contrib.dropbox import make_dropbox_blueprint, dropbox
@@ -17,8 +20,8 @@ def login():
         return redirect("/callback")
     else:
         return "Welcome to this test app login page " \
-               "<a href='/login_with_google'><button>Login with Google</button></a>" \
-               " <a href='/login_with_github'><button>Login with GitHub</button></a> " \
+               "<a href='/login_with_google'><button>Login with Google</button></a> " \
+               "<a href='/login_with_github'><button>Login with GitHub</button></a> " \
                "<a href='/login_with_azure'><button>Login with Azure</button></a> " \
                "<a href='/login_with_atlassian'><button>Login with Atlassian</button></a> " \
                "<a href='/login_with_dropbox'><button>Login with Dropbox</button></a>"
@@ -37,7 +40,7 @@ def callback():
     session_object = data_handling.Session(get_session_id())
     session_object.set_out_login()
     if session_object.provider.endswith("_incomplete"):
-        provider_name = session_object.provider[:-10]  # remove "_incomplete" suffix from provider name
+        provider_name = session_object.provider[:-11]  # remove "_incomplete" suffix from provider name
         return redirect(f"/login_with_{provider_name}")
     else:
         return redirect(session_object.most_recent_source_route)
@@ -155,8 +158,7 @@ def atlassian_login():
 dropbox_blueprint = make_dropbox_blueprint(
     app_key=app.config["DROPBOX_OAUTH_APP_KEY"],
     app_secret=app.config["DROPBOX_OAUTH_APP_SECRET"],
-    redirect_url="callback",
-    scope=["account_info.read"],
+    scope=["account_info.read", "sharing.read"],
 )
 app.register_blueprint(dropbox_blueprint, url_prefix='/dropbox_login')
 
@@ -170,7 +172,7 @@ def dropbox_login():
         session_object.save()
         return redirect(url_for("dropbox.login"))
 
-    account_info = dropbox.get("/account/info")
+    account_info = dropbox.get("/users/get_account")
     account_info_json = account_info.json()
     provider_authorized = dropbox.authorized
     session_object.add_id_info("dropbox", account_info_json, provider_authorized)

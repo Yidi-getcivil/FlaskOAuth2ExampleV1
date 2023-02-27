@@ -4,6 +4,7 @@ from flask import session, abort, request
 from functools import wraps
 from Auth.database_interactions import data_handling
 from Auth.database_interactions.data_handling import Session
+import re
 
 
 def with_session(f):
@@ -55,3 +56,10 @@ def login_is_required(function):
             return abort(401)
     wrapper.__name__ = function.__name__  # Set the name of the wrapper function to the name of the original function
     return wrapper
+
+
+def is_valid_email(email):
+    # This regular expression is based on the email format specified in RFC 5322
+    # It matches most valid email addresses, but there are some edge cases it might miss
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(email_regex, email) is not None

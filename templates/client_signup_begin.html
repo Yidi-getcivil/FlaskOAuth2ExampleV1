@@ -11,6 +11,7 @@
       <input type="text" id="email" name="email"><br><br>
       <button type="button" onclick="createEmailLogin()">Continue</button>
     </form>
+    <div id="errorMsg"></div>
     <h1>Back</h1>
     <a href="/callback"><button>Back</button></a>
 
@@ -36,20 +37,29 @@
           if (response.ok) {
             // Success, handle response here
             console.log("Email login created successfully");
+            window.location.href = `${base_url}/signup_end/${encodeURIComponent(email)}`;
           } else if (response.status === 400) {
             // Bad request, handle error here
-            console.log("Invalid email");
+            const errorMsg = "Invalid email";
+            document.getElementById("errorMsg").innerHTML = errorMsg;
+            console.error(errorMsg);
           } else if (response.status === 409) {
             // Conflict, handle error here
-            console.log("Email already in use");
+            const errorMsg = "Email already in use";
+            document.getElementById("errorMsg").innerHTML = errorMsg;
+            console.error(errorMsg);
           } else {
             // Other errors, handle error here
-            console.log(`Error creating email login: ${response.status} ${response.statusText}`);
+            const errorMsg = `Error creating email login: ${response.status} ${response.statusText}`;
+            document.getElementById("errorMsg").innerHTML = errorMsg;
+            console.error(errorMsg);
           }
         })
         .catch(error => {
           // Network error, handle error here
-          console.error(`Error creating email login: ${error}`);
+          const errorMsg = `Error creating email login: ${error}`;
+          document.getElementById("errorMsg").innerHTML = errorMsg;
+          console.error(errorMsg);
         });
       }
     </script>

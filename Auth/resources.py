@@ -7,8 +7,9 @@ from flask_dance.contrib.dropbox import make_dropbox_blueprint, dropbox
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
 import constants
-from Auth.auth_logic import user_is_logged_in, get_session_id
+from Auth.auth_logic import user_is_logged_in, get_session_id, is_valid_email
 from Auth.database_interactions import data_handling
+from Auth.database_interactions.data_handling import InternalAuthUser
 from app import app
 
 
@@ -40,17 +41,20 @@ def signup_begin():
         )
 
 
-@app.route("/signup_end")
-def signup_end():
+@app.route("/signup_end/<email>")
+def signup_end(email):
     session_object = data_handling.Session(get_session_id())
     session_object.set_in_login()
+    user = InternalAuthUser.get_user_by_email(email)
     if user_is_logged_in():
         return redirect("/callback")
     else:
         return render_template(
             "client_signup_end.html",
             base_url=constants.BASE_URL,
-            request_secret=session_object.create_new_request_secret()
+            request_secret=session_object.create_new_request_secret(),
+            email=user.email,
+            salt=user.client_salt
         )
 
 
@@ -60,6 +64,35 @@ def logout():
     session.clear()
     session_object.logout()
     return redirect("/callback")
+
+
+@app.route("/create_email_login", methods=["POST"])
+def create_email_login():
+    session_object = data_handling.Session(get_session_id())
+    session_object.set_in_login()
+    if user_is_logged_in():
+        return redirect("/callback")
+
+    email = request.form.get("email")
+
+    # Check if there is already a user completed with that email
+    if InternalAuthUser.email_exists_and_completed(email):
+        return "Error: User with email already exists and is completed", 409
+
+    # Get the user using the email
+    user = InternalAuthUser.get_user_by_email(email)
+
+    # If user does not exist, create the user
+    if user is None:
+        # Check if email address is valid
+        if not is_valid_email(email):
+            return "Error: Invalid email address", 400
+
+        # Create user
+        user = InternalAuthUser.create_user(email)
+        return redirect(f"/signup_end/{user.email}")
+
+    return "Success"
 
 
 @app.route("/callback")

@@ -1,4 +1,5 @@
 # Create a connection to the database
+import hashlib
 import pickle
 import random
 import sqlite3
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 from Auth.database_interactions import create_table
 
 create_table.create_sessions_table()
+create_table.create_users_auth_table()
 
 
 # Define the Session class
@@ -377,3 +379,135 @@ class Session:
         self.request_secret = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
         self.save()
         return self.request_secret
+
+
+# Define the Internal Auth User class
+class InternalAuthUser:
+    def __init__(self, user_id):
+        self.user_id = user_id
+        conn = sqlite3.connect('internal_auth.db')
+        cursor = conn.cursor()
+        results = cursor.execute('SELECT * FROM users_auth WHERE user_id = ?;', (self.user_id,))
+        row = results.fetchone()
+        conn.close()
+        if row:
+            (
+                self.user_id, self.email, self.first_name, self.middle_name, self.last_name, self.client_salt,
+                self.server_salt, self.hashed_password, self.user_completed, self.created_at
+             ) = row
+        else:
+            self.email = None
+            self.first_name = None
+            self.middle_name = None
+            self.last_name = None
+            self.client_salt = None
+            self.server_salt = None
+            self.hashed_password = None
+            self.user_completed = False
+            self.created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.save()
+
+    def save(self):
+        # Save the current state of the user to the database
+        query = f'''INSERT OR REPLACE INTO users_auth
+        (user_id, email, first_name, middle_name, last_name, client_salt, server_salt, hashed_password, user_completed, 
+        created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);'''
+        values = (self.user_id, self.email, self.first_name, self.middle_name, self.last_name, self.client_salt,
+                  self.server_salt, self.hashed_password, self.user_completed, self.created_at)
+        conn = sqlite3.connect('internal_auth.db')
+        cursor = conn.cursor()
+
+        cursor.execute(query, values)
+        conn.commit()
+        conn.close()
+
+    def delete(self):
+        # Remove the session from the database
+        conn = sqlite3.connect('internal_auth.db')
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM users_auth WHERE user_id = ?;', (self.user_id,))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def email_exists_and_completed(email):
+        conn = sqlite3.connect('internal_auth.db')
+        cursor = conn.cursor()
+        results = cursor.execute('SELECT * FROM users_auth WHERE email = ? AND user_completed = 1;', (email,))
+        row = results.fetchone()
+        conn.close()
+        return row is not None
+
+    @staticmethod
+    def create_user(email):
+        conn = sqlite3.connect('internal_auth.db')
+        cursor = conn.cursor()
+
+        # Check if the email already exists in the database
+        results = cursor.execute('SELECT * FROM users_auth WHERE email = ?;', (email,))
+        row = results.fetchone()
+        if row:
+            conn.close()
+            raise ValueError('Email address already exists in database.')
+
+        # Generate a random user ID, client salt, and server salt
+        user_id = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+        client_salt = ''.join(random.choices(string.ascii_letters + string.digits, k=40))
+        server_salt = ''.join(random.choices(string.ascii_letters + string.digits, k=40))
+
+        # Insert the new user into the database
+        query = '''INSERT INTO users_auth 
+            (user_id, email, client_salt, server_salt, user_completed, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?);'''
+        values = (user_id, email, client_salt, server_salt, False, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        cursor.execute(query, values)
+        conn.commit()
+        conn.close()
+
+        # Return a new instance of InternalAuthUser for the newly created user
+        return InternalAuthUser(user_id)
+
+    @staticmethod
+    def get_user_by_email(email):
+        conn = sqlite3.connect('internal_auth.db')
+        cursor = conn.cursor()
+
+        # Retrieve the user record from the database
+        results = cursor.execute('SELECT * FROM users_auth WHERE email = ?;', (email,))
+        row = results.fetchone()
+
+        # If no user with the given email exists, return None
+        if not row:
+            conn.close()
+            return None
+
+        # Otherwise, create and return an instance of InternalAuthUser for the retrieved user
+        user_id = row[0]
+        conn.close()
+        return InternalAuthUser(user_id)
+
+    def update_user_info(self, first_name, middle_name, last_name, hashed_password):
+        if self.user_completed:
+            raise ValueError('User information already completed.')
+
+        # Concatenate the hashed password with the server salt and hash it using sha256
+        salted_password = self.server_salt + hashed_password
+        hashed_password = hashlib.sha256(salted_password.encode('utf-8')).hexdigest()
+
+        # Update the user properties
+        self.first_name = first_name
+        self.middle_name = middle_name
+        self.last_name = last_name
+        self.hashed_password = hashed_password
+        self.user_completed = True
+        self.save()
+
+    def check_password(self, hashed_password):
+        # Salt the provided password with the server salt and hash it using sha256
+        salted_password = self.server_salt + hashed_password
+        hashed_password = hashlib.sha256(salted_password.encode('utf-8')).hexdigest()
+
+        # Check if the hashed password matches the one on record
+        return hashed_password == self.hashed_password
+

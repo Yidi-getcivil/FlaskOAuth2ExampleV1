@@ -1,82 +1,91 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<title>Sign Up</title>
-	<script type="text/javascript">
-		// Define base_url and request_secret
-		const base_url = "{{ base_url }}";
-		const request_secret = "{{ request_secret }}";
-		// Define email and salt
-		const email = "{{ email }}";
-		const salt = "{{ salt }}";
+  <head>
+    <meta charset="utf-8" />
+    <title>Sign Up</title>
+  </head>
+  <body>
+    <h1>Sign Up</h1>
+    <form>
+      <p>
+        Email/Username: <strong id="email"></strong>
+      </p>
+      <p>
+        First Name: <input type="text" id="first_name" />
+      </p>
+      <p>
+        Middle Name: <input type="text" id="middle_name" />
+      </p>
+      <p>
+        Last Name: <input type="text" id="last_name" />
+      </p>
+      <p>
+        Password: <input type="password" id="password" />
+      </p>
+      <p>
+        Confirm Password: <input type="password" id="confirm_password" />
+      </p>
+      <button type="button" onclick="signUp()">Sign Up</button>
+    </form>
 
-		// Function to hash password with salt
-		function hashPassword(password) {
-			return sha256(password + salt);
-		}
+    <script>
+      const base_url = "{{ base_url }}";
+      const request_secret = "{{ request_secret }}";
+      const email = "{{ email }}";
+      const salt = "{{ salt }}";
 
-		// Function to check if password is secure
-		function isPasswordSecure(password) {
-			return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,40}$/.test(password);
-		}
+      function signUp() {
+        const first_name = document.getElementById("first_name").value;
+        const middle_name = document.getElementById("middle_name").value;
+        const last_name = document.getElementById("last_name").value;
+        const password = document.getElementById("password").value;
+        const confirm_password = document.getElementById("confirm_password").value;
 
-		// Function to handle sign up button click event
-		function signUp() {
-			// Get password and confirm password values
-			const password = document.getElementById("password").value;
-			const confirmPassword = document.getElementById("confirmPassword").value;
-			// Check if password and confirm password match
-			if (password !== confirmPassword) {
-				alert("Passwords do not match");
-				return;
-			}
-			// Check if password is secure
-			if (!isPasswordSecure(password)) {
-				alert("Password is not secure");
-				return;
-			}
-			// Hash password with salt
-			const hashedPassword = hashPassword(password);
-			// Make API call to sign up
-			fetch(base_url + "/signup", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"Authorization": request_secret
-				},
-				body: JSON.stringify({
-					email: email,
-					hashed_password: hashedPassword
-				})
-			})
-			.then(response => {
-				if (!response.ok) {
-					throw new Error(response.statusText);
-				}
-				return response.json();
-			})
-			.then(data => {
-				// Handle successful sign up
-				alert("Sign up successful!");
-			})
-			.catch(error => {
-				// Handle error
-				alert("Error: " + error.message);
-			});
-		}
-	</script>
-</head>
-<body>
-	<h1>Sign Up</h1>
-	<p>Email: <b><?php echo $email; ?></b></p>
-	<form>
-		<label for="password">Password:</label>
-		<input type="password" id="password" name="password"><br><br>
-		<label for="confirmPassword">Confirm Password:</label>
-		<input type="password" id="confirmPassword" name="confirmPassword"><br><br>
-		<button type="button" onclick="signUp()">Sign Up</button>
-	</form>
-    <h1>Back</h1>
-    <a href="/callback"><button>Back</button></a>
-</body>
+        if (password !== confirm_password) {
+          alert("Passwords do not match");
+          return;
+        }
+
+        if (
+          !password.match(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,40}$/
+          )
+        ) {
+          alert(
+            "Password must be 8-40 characters, including at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character"
+          );
+          return;
+        }
+
+        const hashed_password = sha256(password + salt);
+
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("first_name", first_name);
+        formData.append("middle_name", middle_name);
+        formData.append("last_name", last_name);
+        formData.append("hashed_password", hashed_password);
+
+        fetch(`${base_url}/signup`, {
+          method: "POST",
+          headers: {
+            "Request-Secret": request_secret,
+          },
+          body: formData,
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(response.statusText);
+            }
+            alert("Sign up successful");
+          })
+          .catch((error) => {
+            alert(`Error: ${error.message}`);
+          });
+      }
+
+      // Display email in form
+      document.getElementById("email").textContent = email;
+    </script>
+  </body>
 </html>

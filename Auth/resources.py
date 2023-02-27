@@ -134,6 +134,65 @@ def sign_up_internal():
     return "Success", 200
 
 
+@app.route("/salt_request", methods=["POST"])
+def salt_request():
+    session_object = data_handling.Session(get_session_id())
+    session_object.set_in_login()
+    if user_is_logged_in():
+        return redirect("/callback")
+
+    email = request.form.get("email")
+
+    # Get the user using the email
+    user = InternalAuthUser.get_user_by_email(email)
+
+    if user is None:
+        return "Error: No such Email", 400
+
+    return {
+        "email": user.email,
+        "salt": user.client_salt,
+        "request_secret": session_object.request_secret
+    }
+
+
+@app.route("/internal_login", methods=["POST"])
+def internal_login():
+    session_object = data_handling.Session(get_session_id())
+    session_object.set_in_login()
+    if user_is_logged_in():
+        return redirect("/callback")
+
+    email = request.form.get("email")
+    hashed_password = request.form.get("password")
+
+    # Get the user using the email
+    user = InternalAuthUser.get_user_by_email(email)
+
+    if user is None:
+        print("error 1")
+        return "Error: No such Email", 400
+
+    provider_authorized = user.check_password(hashed_password)
+    if provider_authorized:
+        session_object.add_id_info(
+            "erasetheline",
+            {
+                "email": user.email,
+                "email_verified": True,
+                "given_name": user.first_name,
+                "family_name": user.last_name,
+                "id": user.user_id
+            },
+            True
+        )
+    else:
+        print("error 2")
+        return "Error: Incorrect Password", 400
+
+    return "Success", 200
+
+
 @app.route("/callback")
 def callback():
     session_object = data_handling.Session(get_session_id())

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Create Email Login</title>
+  </head>
+  <body>
+    <h1>Create New Account</h1>
+    <form id="loginForm">
+      <label for="email">Email/Username:</label>
+      <input type="text" id="email" name="email"><br><br>
+      <button type="button" onclick="createEmailLogin()">Continue</button>
+    </form>
+    <h1>Back</h1>
+    <a href="/callback"><button>Back</button></a>
+
+    <script>
+      const base_url = "{{ base_url }}"; // Replace with your base URL
+      const request_secret = "{{ request_secret }}"; // Replace with your request secret
+
+      function createEmailLogin() {
+        const email = document.getElementById("email").value;
+        const url = `${base_url}/create_email_login`;
+        const headers = {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "request_secret": request_secret,
+        };
+        const body = `email=${encodeURIComponent(email)}`;
+
+        fetch(url, {
+          method: "POST",
+          headers: headers,
+          body: body,
+        })
+        .then(response => {
+          if (response.ok) {
+            // Success, handle response here
+            console.log("Email login created successfully");
+          } else if (response.status === 400) {
+            // Bad request, handle error here
+            console.log("Invalid email");
+          } else if (response.status === 409) {
+            // Conflict, handle error here
+            console.log("Email already in use");
+          } else {
+            // Other errors, handle error here
+            console.log(`Error creating email login: ${response.status} ${response.statusText}`);
+          }
+        })
+        .catch(error => {
+          // Network error, handle error here
+          console.error(`Error creating email login: ${error}`);
+        });
+      }
+    </script>
+  </body>
+</html>

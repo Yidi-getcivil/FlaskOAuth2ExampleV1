@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sign Up</title>
+	<script type="text/javascript">
+		// Define base_url and request_secret
+		const base_url = "{{ base_url }}";
+		const request_secret = "{{ request_secret }}";
+		// Define email and salt
+		const email = "{{ email }}";
+		const salt = "{{ salt }}";
+
+		// Function to hash password with salt
+		function hashPassword(password) {
+			return sha256(password + salt);
+		}
+
+		// Function to check if password is secure
+		function isPasswordSecure(password) {
+			return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,40}$/.test(password);
+		}
+
+		// Function to handle sign up button click event
+		function signUp() {
+			// Get password and confirm password values
+			const password = document.getElementById("password").value;
+			const confirmPassword = document.getElementById("confirmPassword").value;
+			// Check if password and confirm password match
+			if (password !== confirmPassword) {
+				alert("Passwords do not match");
+				return;
+			}
+			// Check if password is secure
+			if (!isPasswordSecure(password)) {
+				alert("Password is not secure");
+				return;
+			}
+			// Hash password with salt
+			const hashedPassword = hashPassword(password);
+			// Make API call to sign up
+			fetch(base_url + "/signup", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": request_secret
+				},
+				body: JSON.stringify({
+					email: email,
+					hashed_password: hashedPassword
+				})
+			})
+			.then(response => {
+				if (!response.ok) {
+					throw new Error(response.statusText);
+				}
+				return response.json();
+			})
+			.then(data => {
+				// Handle successful sign up
+				alert("Sign up successful!");
+			})
+			.catch(error => {
+				// Handle error
+				alert("Error: " + error.message);
+			});
+		}
+	</script>
+</head>
+<body>
+	<h1>Sign Up</h1>
+	<p>Email: <b><?php echo $email; ?></b></p>
+	<form>
+		<label for="password">Password:</label>
+		<input type="password" id="password" name="password"><br><br>
+		<label for="confirmPassword">Confirm Password:</label>
+		<input type="password" id="confirmPassword" name="confirmPassword"><br><br>
+		<button type="button" onclick="signUp()">Sign Up</button>
+	</form>
+    <h1>Back</h1>
+    <a href="/callback"><button>Back</button></a>
+</body>
+</html>

@@ -1,12 +1,12 @@
 import hashlib
 import sqlite3
-
-from flask import session, redirect, url_for, request
+from flask import session, redirect, url_for, request, render_template
 from flask_dance.contrib.atlassian import make_atlassian_blueprint, atlassian
 from flask_dance.contrib.azure import make_azure_blueprint, azure
 from flask_dance.contrib.dropbox import make_dropbox_blueprint, dropbox
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_dance.contrib.google import make_google_blueprint, google
+import constants
 from Auth.auth_logic import user_is_logged_in, get_session_id
 from Auth.database_interactions import data_handling
 from app import app
@@ -19,12 +19,39 @@ def login():
     if user_is_logged_in():
         return redirect("/callback")
     else:
-        return "Welcome to this test app login page " \
-               "<a href='/login_with_google'><button>Login with Google</button></a> " \
-               "<a href='/login_with_github'><button>Login with GitHub</button></a> " \
-               "<a href='/login_with_azure'><button>Login with Azure</button></a> " \
-               "<a href='/login_with_atlassian'><button>Login with Atlassian</button></a> " \
-               "<a href='/login_with_dropbox'><button>Login with Dropbox</button></a>"
+        return render_template(
+            "client_login.html",
+            base_url=constants.BASE_URL,
+            request_secret=session_object.create_new_request_secret()
+        )
+
+
+@app.route("/signup_begin")
+def signup_begin():
+    session_object = data_handling.Session(get_session_id())
+    session_object.set_in_login()
+    if user_is_logged_in():
+        return redirect("/callback")
+    else:
+        return render_template(
+            "client_signup_begin.html",
+            base_url=constants.BASE_URL,
+            request_secret=session_object.create_new_request_secret()
+        )
+
+
+@app.route("/signup_end")
+def signup_end():
+    session_object = data_handling.Session(get_session_id())
+    session_object.set_in_login()
+    if user_is_logged_in():
+        return redirect("/callback")
+    else:
+        return render_template(
+            "client_signup_end.html",
+            base_url=constants.BASE_URL,
+            request_secret=session_object.create_new_request_secret()
+        )
 
 
 @app.route("/logout")
@@ -39,6 +66,8 @@ def logout():
 def callback():
     session_object = data_handling.Session(get_session_id())
     session_object.set_out_login()
+    if session_object.provider is None:
+        return redirect(session_object.most_recent_source_route)
     if session_object.provider.endswith("_incomplete"):
         provider_name = session_object.provider[:-11]  # remove "_incomplete" suffix from provider name
         return redirect(f"/login_with_{provider_name}")

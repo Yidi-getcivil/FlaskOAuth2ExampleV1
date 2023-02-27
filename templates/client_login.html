@@ -4,6 +4,7 @@
   <title>Login Page</title>
 </head>
 <body>
+  <h1>Login</h1>
   <form id="loginForm">
     <label for="username">Email/Username:</label>
     <input type="text" id="username" name="username"><br><br>
@@ -11,13 +12,21 @@
     <input type="password" id="password" name="password"><br><br>
     <button type="button" onclick="login()">Sign In</button>
   </form>
+  <h1>Standard Fields</h1>
+  <a href='/signup_begin'><button>Sign Up With Email</button></a>
+  <a href='/callback'><button>Back</button></a>
+  <a href='/login_with_google'><button>Login with Google</button></a>
+  <a href='/login_with_github'><button>Login with GitHub</button></a>
+  <a href='/login_with_azure'><button>Login with Azure</button></a>
+  <a href='/login_with_atlassian'><button>Login with Atlassian</button></a>
+  <a href='/login_with_dropbox'><button>Login with Dropbox</button></a>
 
   <script>
     // Set the base URL for API calls
-    const base_url = "https://example.com/api";
+    const base_url = '{{ base_url }}';
 
     // Set the request secret
-    const request_secret = "your_request_secret_here";
+    const request_secret = '{{ request_secret }}';
 
     // Function to handle the login process
     function login() {
@@ -29,7 +38,7 @@
       fetch(base_url + "/salt_request", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${request_secret}`,
+          "request_secret": `${request_secret}`,
           "Content-Type": "application/x-www-form-urlencoded"
         },
         body: `email=${username}`
@@ -37,15 +46,16 @@
       .then(response => response.json())
       .then(data => {
         const salt = data.salt;
+        const request_secret = data.request_secret;
 
         // Hash the password with the salt using sha256
         const hashed_password = sha256(password + salt);
 
         // Make a call to the /authenticate_user endpoint to authenticate the user
-        fetch(base_url + "/authenticate_user", {
+        fetch(base_url + "/internal_login", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${request_secret}`,
+            "request_secret": `${request_secret}`,
             "Content-Type": "application/x-www-form-urlencoded"
           },
           body: `email=${username}&password=${hashed_password}`

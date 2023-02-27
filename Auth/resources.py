@@ -90,9 +90,48 @@ def create_email_login():
 
         # Create user
         user = InternalAuthUser.create_user(email)
-        return redirect(f"/signup_end/{user.email}")
+        return "Success", 200
 
-    return "Success"
+    return "Success", 200
+
+
+@app.route("/signup", methods=["POST"])
+def sign_up_internal():
+    session_object = data_handling.Session(get_session_id())
+    session_object.set_in_login()
+    if user_is_logged_in():
+        return redirect("/callback")
+
+    email = request.form.get("email")
+    first_name = request.form.get("first_name")
+    middle_name = request.form.get("middle_name", "")
+    last_name = request.form.get("last_name")
+    hashed_password = request.form.get("hashed_password")
+
+    # Check if there is already a user completed with that email
+    if InternalAuthUser.email_exists_and_completed(email):
+        return "Error: User with email already exists and is completed", 409
+
+    # Get the user using the email
+    user = InternalAuthUser.get_user_by_email(email)
+
+    if None in [email, first_name, middle_name, last_name, hashed_password]:
+        return "Error: Missing required fields", 400
+
+    user.update_user_info(first_name, middle_name, last_name, hashed_password)
+    session_object.add_id_info(
+        "erasetheline",
+        {
+            "email": user.email,
+            "email_verified": True,
+            "given_name": user.first_name,
+            "family_name": user.last_name,
+            "id": user.user_id
+        },
+        True
+    )
+
+    return "Success", 200
 
 
 @app.route("/callback")

@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Sign Up</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   </head>
   <body>
     <h1>Sign Up</h1>
@@ -57,7 +58,7 @@
           return;
         }
 
-        const hashed_password = sha256(password + salt);
+        const hashed_password = CryptoJS.SHA256(password + salt).toString();
 
         const formData = new FormData();
         formData.append("email", email);
@@ -78,6 +79,7 @@
               throw new Error(response.statusText);
             }
             alert("Sign up successful");
+            window.location.href = `${base_url}/callback`;
           })
           .catch((error) => {
             alert(`Error: ${error.message}`);

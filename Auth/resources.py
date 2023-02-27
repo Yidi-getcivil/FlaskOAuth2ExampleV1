@@ -170,7 +170,6 @@ def internal_login():
     user = InternalAuthUser.get_user_by_email(email)
 
     if user is None:
-        print("error 1")
         return "Error: No such Email", 400
 
     provider_authorized = user.check_password(hashed_password)
@@ -187,7 +186,6 @@ def internal_login():
             True
         )
     else:
-        print("error 2")
         return "Error: Incorrect Password", 400
 
     return "Success", 200

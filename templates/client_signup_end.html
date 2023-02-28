@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <title>Sign Up</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/argon2-browser/dist/argon2-browser.js"></script>
   </head>
   <body>
     <h1>Sign Up</h1>
@@ -36,7 +35,7 @@
       const email = "{{ email }}";
       const salt = "{{ salt }}";
 
-      async function signUp() {
+      function signUp() {
         const first_name = document.getElementById("first_name").value;
         const middle_name = document.getElementById("middle_name").value;
         const last_name = document.getElementById("last_name").value;
@@ -59,15 +58,7 @@
           return;
         }
 
-        const hashed_password = await argon2.hash({
-        pass: password,
-        salt: salt,
-        time: 1000, // 1 second
-        mem: 1024, // 1 MB
-        hashLen: 32, // 32 bytes
-        parallelism: 1, // number of threads
-        type: argon2.ArgonType.Argon2id // use Argon2id
-      });
+        const hashed_password = CryptoJS.SHA256(password + salt).toString();
 
         const formData = new FormData();
         formData.append("email", email);

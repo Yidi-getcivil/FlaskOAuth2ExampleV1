@@ -15,3 +15,4 @@ class Config(object):
     ATLASSIAN_OAUTH_CLIENT_SECRET = os.environ.get("ATLASSIAN_OAUTH_CLIENT_SECRET")
     DROPBOX_OAUTH_APP_KEY = os.environ.get("DROPBOX_OAUTH_APP_KEY")
     DROPBOX_OAUTH_APP_SECRET = os.environ.get("DROPBOX_OAUTH_APP_SECRET")
+    PEPPER = os.environ.get("PEPPER")

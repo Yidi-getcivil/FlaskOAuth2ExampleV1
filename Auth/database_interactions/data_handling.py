@@ -6,6 +6,7 @@ import string
 from datetime import datetime, timedelta
 from Auth.database_interactions import create_table
 from passlib.hash import argon2
+from app import app
 
 create_table.create_sessions_table()
 create_table.create_users_auth_table()
@@ -492,8 +493,8 @@ class InternalAuthUser:
             raise ValueError('User information already completed.')
 
         # Concatenate the hashed password with the server salt and hash it using sha256
-        salted_password = self.server_salt + password
-        hashed_password = argon2.hash(salted_password)
+        spiced_password = self.server_salt + password + app.config["PEPPER"]
+        hashed_password = argon2.hash(spiced_password)
 
         # Update the user properties
         self.first_name = first_name
@@ -505,7 +506,7 @@ class InternalAuthUser:
 
     def check_password(self, password):
         # Salt the provided password with the server salt and hash it using sha256
-        salted_password = self.server_salt + password
+        spiced_password = self.server_salt + password + app.config["PEPPER"]
 
         # Check if the hashed password matches the one on record
-        return argon2.verify(salted_password, self.hashed_password)
+        return argon2.verify(spiced_password, self.hashed_password)

@@ -1,10 +1,12 @@
 # Create a connection to the database
-import hashlib
 import pickle
 import random
 import sqlite3
 import string
 from datetime import datetime, timedelta
+
+from passlib.hash import argon2
+
 from Auth.database_interactions import create_table
 
 create_table.create_sessions_table()
@@ -487,13 +489,13 @@ class InternalAuthUser:
         conn.close()
         return InternalAuthUser(user_id)
 
-    def update_user_info(self, first_name, middle_name, last_name, hashed_password):
+    def update_user_info(self, first_name, middle_name, last_name, password):
         if self.user_completed:
             raise ValueError('User information already completed.')
 
-        # Concatenate the hashed password with the server salt and hash it using sha256
-        salted_password = self.server_salt + hashed_password
-        hashed_password = hashlib.sha256(salted_password.encode('utf-8')).hexdigest()
+        # Hash the password using Passlib's argon2 algorithm with server salt as pepper
+        salted_password = self.server_salt + password
+        hashed_password = argon2.using(rounds=4).hash(salted_password)
 
         # Update the user properties
         self.first_name = first_name
@@ -503,11 +505,7 @@ class InternalAuthUser:
         self.user_completed = True
         self.save()
 
-    def check_password(self, hashed_password):
-        # Salt the provided password with the server salt and hash it using sha256
-        salted_password = self.server_salt + hashed_password
-        hashed_password = hashlib.sha256(salted_password.encode('utf-8')).hexdigest()
-
-        # Check if the hashed password matches the one on record
-        return hashed_password == self.hashed_password
+    def check_password(self, password):
+        # Verify the password using Argon2
+        return argon2.verify(self.hashed_password, password + self.server_salt)
 

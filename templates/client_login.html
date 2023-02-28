@@ -3,6 +3,7 @@
 <head>
   <title>Login Page</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/argon2-browser/dist/argon2.min.js"></script>
 </head>
 <body>
   <h1>Login</h1>
@@ -21,7 +22,6 @@
   <a href='/login_with_azure'><button>Login with Azure</button></a>
   <a href='/login_with_atlassian'><button>Login with Atlassian</button></a>
   <a href='/login_with_dropbox'><button>Login with Dropbox</button></a>
-
   <script>
     // Set the base URL for API calls
     const base_url = '{{ base_url }}';
@@ -30,51 +30,49 @@
     const request_secret = '{{ request_secret }}';
 
     // Function to handle the login process
-    function login() {
+    async function login() {
       // Get the username and password from the form
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
       // Make a call to the /salt_request endpoint to get the salt
-      fetch(base_url + "/salt_request", {
+      const salt_response = await fetch(base_url + "/salt_request", {
         method: "POST",
         headers: {
           "request_secret": `${request_secret}`,
           "Content-Type": "application/x-www-form-urlencoded"
         },
         body: `email=${username}`
-      })
-      .then(response => response.json())
-      .then(data => {
-        const salt = data.salt;
-        const request_secret = data.request_secret;
-
-        // Hash the password with the salt using sha256
-        const hashed_password = CryptoJS.SHA256(password + salt).toString();
-
-        // Make a call to the /authenticate_user endpoint to authenticate the user
-        fetch(base_url + "/internal_login", {
-          method: "POST",
-          headers: {
-            "request_secret": `${request_secret}`,
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: `email=${username}&password=${hashed_password}`
-        })
-        .then(response => {
-          if (response.ok) {
-            window.location.href = base_url + "/callback";
-          } else {
-            alert("Failed to log in. Please try again.");
-          }
-        })
-        .catch(error => {
-          alert("Failed to log in. Please try again.");
-        });
-      })
-      .catch(error => {
-        alert("Failed to log in. Please try again.");
       });
+      const salt_data = await salt_response.json();
+      const salt = salt_data.salt;
+      const request_secret = salt_data.request_secret;
+
+      // Hash the password with the salt using Argon2
+      const hashed_password = await argon2.hash({
+        pass: password,
+        salt: salt,
+        time: 1000, // 1 second
+        mem: 1024, // 1 MB
+        hashLen: 32, // 32 bytes
+        parallelism: 1, // number of threads
+        type: argon2.ArgonType.Argon2id // use Argon2id
+      });
+
+      // Make a call to the /authenticate_user endpoint to authenticate the user
+      const auth_response = await fetch(base_url + "/internal_login", {
+        method: "POST",
+        headers: {
+          "request_secret": `${request_secret}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `email=${username}&password=${hashed_password}`
+      });
+      if (auth_response.ok) {
+        window.location.href = base_url + "/callback";
+      } else {
+        alert("Failed to log in. Please try again.");
+      }
     }
   </script>
 </body>
